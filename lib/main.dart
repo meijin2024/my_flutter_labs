@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter Demo Home Page',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -58,9 +58,11 @@ class _MyHomePageState extends State<MyHomePage> {
   var _counter = 0.0;
   var myFontSize =30.0;
   //var isChecked=false;
-  final TextEditingController num1=TextEditingController();
-  final TextEditingController num2=TextEditingController();
+  final TextEditingController login=TextEditingController();
+  final TextEditingController password=TextEditingController();
+
   get images => null;
+
   void setNewValue(double value)
   {
     _counter = value;
@@ -79,6 +81,20 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+  }
+  String imageSource = "images/question.jpg";
+  void _handleLogin() {
+    String password1 = password.text;
+    setState(() {
+      if (password1 == "QWERTY123") {
+        imageSource = "images/idea.jpg";
+      } else {
+        imageSource = "images/stop.jpg";
+      }
+    });
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text('Password: $password')),
+    // );
   }
 
   @override
@@ -118,28 +134,37 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
 
           mainAxisAlignment: MainAxisAlignment.center,
+
           children: <Widget>[
-            TextField(controller: num1,decoration: InputDecoration(
-                hintText: "Please enter a number",
-                labelText: "Number 1",
+            TextField(controller: login,decoration: InputDecoration(
+                hintText: "Please enter your username",
+                labelText: "Login",
                 border: OutlineInputBorder()
             ),),
-            TextField(controller: num2, decoration: const InputDecoration(
-                hintText: "Please",
-                labelText: "num2"
+            TextField(controller: password, obscureText: true,
+              decoration: const InputDecoration(
+                hintText: "Please enter your password",
+                labelText: "Password"
             ),),
             //Text(
             //'You have pushed the button this many times:',
             //style: TextStyle(fontSize: myFontSize),
             //),
-            //Image.asset(images/AC.jpg, width: 300),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-              //style: TextStyle(fontSize: myFontSize),
-            ),
-            Slider(value:_counter, max:100.0, onChanged: setNewValue, min:0.0 ),
-            ElevatedButton(onPressed: (){}, child: const Text("Elevated Button")),
+
+            // Text(
+            //   '$_counter',
+            //   style: Theme.of(context).textTheme.headlineMedium,
+            //   //style: TextStyle(fontSize: myFontSize),
+            // ),
+            //Slider(value:_counter, max:100.0, onChanged: setNewValue, min:0.0 ),
+            // ElevatedButton(onPressed: (){}, child: const Text("Log in")),
+            ElevatedButton(onPressed: _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.blue, // Set text color to blue
+                  // padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  textStyle: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
+                child: const Text("Login")),
             //TextButton(onPressed: (){}, child: const Text ("Text Button")),
             //OutlinedButton(onPressed: (){}, child: const Text ("Outlined Button")),
             //Checkbox(value: isChecked, onChanged: (value){setState(() {
@@ -150,15 +175,19 @@ class _MyHomePageState extends State<MyHomePage> {
             //isChecked=newValue;
             //});
             //}),
-
+            Image.asset(
+              imageSource,
+              // height: 200,
+              // width: 200,
+            ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _incrementCounter,
+      //   tooltip: 'Increment',
+      //   child: const Icon(Icons.add),
+      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
