@@ -34,6 +34,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.1
+  flutter_secure_storage: ^9.0.0
+  encrypted_shared_preferences: ^3.0.1
 
 dev_dependencies:
   flutter_test:
@@ -44,7 +47,8 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^4.0.0
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -58,12 +62,27 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - images/Beef.jpg
+    - images/Brownies.jpg
+    - images/Chicken.jpg
+    - images/Cookies.jpg
+    - images/Crockpot.jpg
+    - images/IceCream.jpg
+    - images/MainDishes.jpg
+    - images/Pies.jpg
+    - images/Pork.jpg
+    - images/Salad.jpg
+    - images/Seafood.jpg
+    - images/SideDishes.jpg
+    - images/question.jpg
+    - images/idea.jpg
+    - images/stop.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
+
+
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
