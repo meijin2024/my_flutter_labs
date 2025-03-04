@@ -1,105 +1,67 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: true,
+      title: 'Flutter Secure Login',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Secure Login'),
+      home: ListPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
-
+class ListPage extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ListPageState createState() => _ListPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _loginNameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  String imageSource = "images/question.jpg";
+//stateful widget manage shopping list
+class _ListPageState extends State<ListPage> {
+  final List<Map<String, dynamic>> _items = []; //list to store mapping items
+  final TextEditingController _itemController = TextEditingController();//controllers to manage text input for item name and quantity
+  final TextEditingController _quantityController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadStoredCredentials();
-  }
+  void _addItem() { // function to add items
+    final String itemName = _itemController.text.trim(); //get item
+    final String quantity = _quantityController.text.trim(); //get quantity
 
-  Future<void> _loadStoredCredentials() async {
-    String? savedUsername = await _secureStorage.read(key: 'username');
-    String? savedPassword = await _secureStorage.read(key: 'password');
-
-    if (savedUsername != null && savedPassword != null) {
-      _loginNameController.text = savedUsername;
-      _passwordController.text = savedPassword;
-
-      // Show snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Previous login loaded'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () {
-              setState(() {
-                _loginNameController.clear();
-                _passwordController.clear();
-              });
-            },
-          ),
-        ),
-      );
+    if (itemName.isNotEmpty && quantity.isNotEmpty) {
+      setState(() {
+        _items.add({'name': itemName, 'quantity': quantity});//add item and quantity to the list
+        _itemController.clear();//clear the text fields
+        _quantityController.clear();
+      });
     }
   }
 
-  Future<void> _handleLogin() async {
-    String username = _loginNameController.text;
-    String password = _passwordController.text;
-
-    setState(() {
-      imageSource = password == "QWERTY123" ? "images/idea.jpg" : "images/stop.jpg";
-    });
-
-    _showSaveDialog(username, password);
-  }
-
-  void _showSaveDialog(String username, String password) {
+  void _removeItem(int index) {//function to remove an item from the list
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Save Login Info?"),
-        content: const Text("Would you like to save your username and password?"),
+        title: Text("Remove Item"),
+        content: Text("Are you sure you want to delete this item?"),
         actions: [
           TextButton(
-            onPressed: () {
-              _secureStorage.deleteAll();
-              Navigator.of(context).pop();
-            },
-            child: const Text("No"),
+            onPressed: () => Navigator.pop(context),//close the dialog without deleting
+            child: Text("No"),
           ),
           TextButton(
-            onPressed: () async {
-              await _secureStorage.write(key: 'username', value: username);
-              await _secureStorage.write(key: 'password', value: password);
-              Navigator.of(context).pop();
+            onPressed: () {
+              setState(() {
+                _items.removeAt(index);
+              }); //remove the item from the list if the answer is 'YES'
+              Navigator.pop(context);
             },
-            child: const Text("Yes"),
+            child: Text("Yes"),
           ),
         ],
       ),
@@ -110,49 +72,78 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text("Shopping List"),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextField(
-              controller: _loginNameController,
-              decoration: const InputDecoration(
-                hintText: "Please enter your username",
-                labelText: "Login",
-                border: OutlineInputBorder(),
-              ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [ // section for adding items
+                Text("Add Items to Your Shopping List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 8),
+                Row(
+                  children: [//textfield for entering teh items
+                    Expanded(
+                      child: TextField(
+                        controller: _itemController,
+                        decoration: InputDecoration(
+                          hintText: "Enter item name",
+                          labelText: "Item Name",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(// adding quantity
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: "Enter quantity",
+                          labelText: "Quantity",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _addItem,
+                      child: Text("Click here"),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: "Please enter your password",
-                labelText: "Password",
-                border: OutlineInputBorder(),
-              ),
+          ),
+          Expanded(//section for displaying shopping list
+            child: _items.isEmpty
+                ? Center(child: Text("There are no items in the list"))
+                : ListView.builder(
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onLongPress: () => _removeItem(index),//onLongPress to remove items
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("${index + 1}: ${_items[index]['name']}", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(" quantity: ${_items[index]['quantity']}", style: TextStyle(color: Colors.grey[700])),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _handleLogin,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.blue,
-                textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              child: const Text("Login"),
-            ),
-            Image.asset(
-              imageSource,
-              height: 200,
-              width: 200,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
+
 

@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  floor: ^1.5.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -37,10 +38,13 @@ dependencies:
   shared_preferences: ^2.5.1
   flutter_secure_storage: ^9.0.0
   encrypted_shared_preferences: ^3.0.1
+  url_launcher:  ^6.1.11
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  floor_generator: ^1.5.0
+  build_runner: ^2.4.13
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -63,18 +67,18 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - images/Beef.jpg
-    - images/Brownies.jpg
-    - images/Chicken.jpg
-    - images/Cookies.jpg
-    - images/Crockpot.jpg
-    - images/IceCream.jpg
-    - images/MainDishes.jpg
-    - images/Pies.jpg
-    - images/Pork.jpg
-    - images/Salad.jpg
-    - images/Seafood.jpg
-    - images/SideDishes.jpg
+#    - images/Beef.jpg
+#    - images/Brownies.jpg
+#    - images/Chicken.jpg
+#    - images/Cookies.jpg
+#    - images/Crockpot.jpg
+#    - images/IceCream.jpg
+#    - images/MainDishes.jpg
+#    - images/Pies.jpg
+#    - images/Pork.jpg
+#    - images/Salad.jpg
+#    - images/Seafood.jpg
+#    - images/SideDishes.jpg
     - images/question.jpg
     - images/idea.jpg
     - images/stop.jpg
