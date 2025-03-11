@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:floor/floor.dart';
 import 'database.dart';
 import 'to_item.dart';
 
@@ -11,16 +10,13 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final AppDatabase database;
-
   MyApp(this.database);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-
-      debugShowCheckedModeBanner: true,
-      title: 'Flutter Secure Login',
-
+      debugShowCheckedModeBanner: false,
+      title: 'Shopping List',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -32,16 +28,15 @@ class MyApp extends StatelessWidget {
 
 class ListPage extends StatefulWidget {
   final AppDatabase database;
-
   ListPage({required this.database});
 
   @override
   _ListPageState createState() => _ListPageState();
 }
 
-
 class _ListPageState extends State<ListPage> {
-  List<TodoItem> _items = []; // Initialize with empty list instead of late
+  late List<TodoItem> _items = [];
+  TodoItem? _selectedItem;
   final TextEditingController _itemController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
@@ -53,7 +48,6 @@ class _ListPageState extends State<ListPage> {
 
   Future<void> _loadItems() async {
     final items = await widget.database.todoDao.getAllItems();
-
     setState(() {
       _items = items;
     });
@@ -72,119 +66,160 @@ class _ListPageState extends State<ListPage> {
     }
   }
 
-  Future<void> _removeItem(int index) async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Remove Item"),
-        content: Text("Are you sure you want to delete this item?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("No"),
-          ),
-          TextButton(
-            onPressed: () async {
-              await widget.database.todoDao.deleteItem(_items[index]);
-              Navigator.pop(context);
-              _loadItems();
-            },
-            child: Text("Yes"),
-          ),
-        ],
-      ),
-    );
-  }
-  String imageSource = "images/question.jpg";
-  void _handleLogin() {
-    String password1 = password.text;
+  Future<void> _deleteItem(TodoItem item) async {
+    await widget.database.todoDao.deleteItem(item);
     setState(() {
-      if (password1 == "QWERTY123") {
-        imageSource = "images/idea.jpg";
-      } else {
-        imageSource = "images/stop.jpg";
-      }
+      _selectedItem = null;
     });
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(content: Text('Password: $password')),
-    // );
+    _loadItems();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Shopping List"),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWideScreen = constraints.maxWidth > 600;
 
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                Text("Add Items to Your Shopping List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _itemController,
-                        decoration: InputDecoration(
-                          hintText: "Enter item name",
-                          labelText: "Item Name",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _quantityController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: "Enter quantity",
-                          labelText: "Quantity",
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _addItem,
-                      child: Text("Click here"),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        return Scaffold(
+          appBar: AppBar(
+            title: Text("Shopping List"),
+            backgroundColor: Colors.deepPurple,
+            foregroundColor: Colors.white,
           ),
-          Expanded(
-            child: _items.isEmpty
-                ? Center(child: Text("There are no items in the list"))
-                : ListView.builder(
-              itemCount: _items.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onLongPress: () => _removeItem(index),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("${index + 1}: ${_items[index].todoItem}", style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+          body: isWideScreen
+              ? Row(
+            children: [
+              Expanded(child: _buildItemList()),
+              VerticalDivider(),
+              Expanded(
+                child: _selectedItem != null
+                    ? DetailsPage(
+                  item: _selectedItem!,
+                  onDelete: _deleteItem,
+                  onClose: () => setState(() => _selectedItem = null),
+                )
+                    : Center(child: Text("Select an item to view details")),
+              ),
+            ],
+          )
+              : Column(
+            children: [
+              Expanded(flex: 2, child: _buildItemList()), // List at the top
+              Divider(),
+              Expanded(
+                flex: 3,
+                child: _selectedItem != null
+                    ? DetailsPage(
+                  item: _selectedItem!,
+                  onDelete: _deleteItem,
+                  onClose: () => setState(() => _selectedItem = null),
+                )
+                    : Center(child: Text("Select an item to view details")),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildItemList() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _itemController,
+                  decoration: InputDecoration(
+                    hintText: "Enter item name",
+                    labelText: "Item Name",
+                    border: OutlineInputBorder(),
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: "Enter quantity",
+                    labelText: "Quantity",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _addItem,
+                child: Text("Add"),
+              ),
+            ],
           ),
-        ],
-      ),
-
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _items.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(_items[index].todoItem),
+                onTap: () => setState(() => _selectedItem = _items[index]),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
+
+class DetailsPage extends StatelessWidget {
+  final TodoItem item;
+  final VoidCallback onClose;
+  final Function(TodoItem) onDelete;
+
+  DetailsPage({required this.item, required this.onDelete, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Item: ${item.todoItem}", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
+          Text("Quantity: ${_extractQuantity(item.todoItem)}", style: TextStyle(fontSize: 18)),
+          Text("Database ID: ${item.id}", style: TextStyle(fontSize: 16)),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () => onDelete(item),
+                child: Text("Delete"),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              ),
+              SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: onClose,
+                child: Text("Close"),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Extract quantity from item.todoItem (formatted as "Item (Qty: X)")
+  String _extractQuantity(String itemText) {
+    final match = RegExp(r'\(Qty: (\d+)\)').firstMatch(itemText);
+    return match != null ? match.group(1)! : "Unknown";
+  }
+}
+
