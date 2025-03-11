@@ -1,86 +1,99 @@
 import 'package:flutter/material.dart';
+import 'package:floor/floor.dart';
+import 'database.dart';
+import 'to_item.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final database = await $FloorAppDatabase.databaseBuilder('shopping_list.db').build();
+  runApp(MyApp(database));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppDatabase database;
 
-  // This widget is the root of your application.
+  MyApp(this.database);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo Home Page',
+
+      debugShowCheckedModeBanner: true,
+      title: 'Flutter Secure Login',
+
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: ListPage(database: database),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class ListPage extends StatefulWidget {
+  final AppDatabase database;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  ListPage({required this.database});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ListPageState createState() => _ListPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  var _counter = 0.0;
-  var myFontSize =30.0;
-  //var isChecked=false;
-  final TextEditingController login=TextEditingController();
-  final TextEditingController password=TextEditingController();
 
-  get images => null;
+class _ListPageState extends State<ListPage> {
+  List<TodoItem> _items = []; // Initialize with empty list instead of late
+  final TextEditingController _itemController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
 
-  void setNewValue(double value)
-  {
-    _counter = value;
+  @override
+  void initState() {
+    super.initState();
+    _loadItems();
+  }
+
+  Future<void> _loadItems() async {
+    final items = await widget.database.todoDao.getAllItems();
+
     setState(() {
-      _counter = value;
-      myFontSize = value;
+      _items = items;
     });
   }
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  Future<void> _addItem() async {
+    final String itemName = _itemController.text.trim();
+    final String quantity = _quantityController.text.trim();
+
+    if (itemName.isNotEmpty && quantity.isNotEmpty) {
+      final newItem = TodoItem(TodoItem.ID++, '$itemName (Qty: $quantity)');
+      await widget.database.todoDao.insertItem(newItem);
+      _itemController.clear();
+      _quantityController.clear();
+      _loadItems();
+    }
+  }
+
+  Future<void> _removeItem(int index) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Remove Item"),
+        content: Text("Are you sure you want to delete this item?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("No"),
+          ),
+          TextButton(
+            onPressed: () async {
+              await widget.database.todoDao.deleteItem(_items[index]);
+              Navigator.pop(context);
+              _loadItems();
+            },
+            child: Text("Yes"),
+          ),
+        ],
+      ),
+    );
   }
   String imageSource = "images/question.jpg";
   void _handleLogin() {
@@ -99,95 +112,79 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text("Shopping List"),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
 
-          mainAxisAlignment: MainAxisAlignment.center,
-
-          children: <Widget>[
-            TextField(controller: login,decoration: InputDecoration(
-                hintText: "Please enter your username",
-                labelText: "Login",
-                border: OutlineInputBorder()
-            ),),
-            TextField(controller: password, obscureText: true,
-              decoration: const InputDecoration(
-                hintText: "Please enter your password",
-                labelText: "Password"
-            ),),
-            //Text(
-            //'You have pushed the button this many times:',
-            //style: TextStyle(fontSize: myFontSize),
-            //),
-
-            // Text(
-            //   '$_counter',
-            //   style: Theme.of(context).textTheme.headlineMedium,
-            //   //style: TextStyle(fontSize: myFontSize),
-            // ),
-            //Slider(value:_counter, max:100.0, onChanged: setNewValue, min:0.0 ),
-            // ElevatedButton(onPressed: (){}, child: const Text("Log in")),
-            ElevatedButton(onPressed: _handleLogin,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.blue, // Set text color to blue
-                  // padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Text("Add Items to Your Shopping List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _itemController,
+                        decoration: InputDecoration(
+                          hintText: "Enter item name",
+                          labelText: "Item Name",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: "Enter quantity",
+                          labelText: "Quantity",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _addItem,
+                      child: Text("Click here"),
+                    ),
+                  ],
                 ),
-                child: const Text("Login")),
-            //TextButton(onPressed: (){}, child: const Text ("Text Button")),
-            //OutlinedButton(onPressed: (){}, child: const Text ("Outlined Button")),
-            //Checkbox(value: isChecked, onChanged: (value){setState(() {
-            //isChecked=value!; //! is saying there will be a value pass in
-            //});}),
-            //Switch(value: isChecked, onChanged: (newValue) {
-            //setState(() {
-            //isChecked=newValue;
-            //});
-            //}),
-            Image.asset(
-              imageSource,
-              // height: 200,
-              // width: 200,
+              ],
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _items.isEmpty
+                ? Center(child: Text("There are no items in the list"))
+                : ListView.builder(
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onLongPress: () => _removeItem(index),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("${index + 1}: ${_items[index].todoItem}", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: _incrementCounter,
-      //   tooltip: 'Increment',
-      //   child: const Icon(Icons.add),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
+
     );
   }
 }
