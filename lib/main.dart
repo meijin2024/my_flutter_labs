@@ -1,105 +1,91 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:floor/floor.dart';
+import 'database.dart';
+import 'to_item.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final database = await $FloorAppDatabase.databaseBuilder('shopping_list.db').build();
+  runApp(MyApp(database));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppDatabase database;
+
+  MyApp(this.database);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: true,
+      title: 'Flutter Secure Login',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Secure Login'),
+      home: ListPage(database: database),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+class ListPage extends StatefulWidget {
+  final AppDatabase database;
+
+  ListPage({required this.database});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _ListPageState createState() => _ListPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _loginNameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  String imageSource = "images/question.jpg";
+class _ListPageState extends State<ListPage> {
+  List<TodoItem> _items = []; // Initialize with empty list instead of late
+  final TextEditingController _itemController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadStoredCredentials();
+    _loadItems();
   }
 
-  Future<void> _loadStoredCredentials() async {
-    String? savedUsername = await _secureStorage.read(key: 'username');
-    String? savedPassword = await _secureStorage.read(key: 'password');
+  Future<void> _loadItems() async {
+    final items = await widget.database.todoDao.getAllItems();
+    setState(() {
+      _items = items;
+    });
+  }
 
-    if (savedUsername != null && savedPassword != null) {
-      _loginNameController.text = savedUsername;
-      _passwordController.text = savedPassword;
+  Future<void> _addItem() async {
+    final String itemName = _itemController.text.trim();
+    final String quantity = _quantityController.text.trim();
 
-      // Show snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Previous login loaded'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () {
-              setState(() {
-                _loginNameController.clear();
-                _passwordController.clear();
-              });
-            },
-          ),
-        ),
-      );
+    if (itemName.isNotEmpty && quantity.isNotEmpty) {
+      final newItem = TodoItem(TodoItem.ID++, '$itemName (Qty: $quantity)');
+      await widget.database.todoDao.insertItem(newItem);
+      _itemController.clear();
+      _quantityController.clear();
+      _loadItems();
     }
   }
 
-  Future<void> _handleLogin() async {
-    String username = _loginNameController.text;
-    String password = _passwordController.text;
-
-    setState(() {
-      imageSource = password == "QWERTY123" ? "images/idea.jpg" : "images/stop.jpg";
-    });
-
-    _showSaveDialog(username, password);
-  }
-
-  void _showSaveDialog(String username, String password) {
+  Future<void> _removeItem(int index) async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Save Login Info?"),
-        content: const Text("Would you like to save your username and password?"),
+        title: Text("Remove Item"),
+        content: Text("Are you sure you want to delete this item?"),
         actions: [
           TextButton(
-            onPressed: () {
-              _secureStorage.deleteAll();
-              Navigator.of(context).pop();
-            },
-            child: const Text("No"),
+            onPressed: () => Navigator.pop(context),
+            child: Text("No"),
           ),
           TextButton(
             onPressed: () async {
-              await _secureStorage.write(key: 'username', value: username);
-              await _secureStorage.write(key: 'password', value: password);
-              Navigator.of(context).pop();
+              await widget.database.todoDao.deleteItem(_items[index]);
+              Navigator.pop(context);
+              _loadItems();
             },
-            child: const Text("Yes"),
+            child: Text("Yes"),
           ),
         ],
       ),
@@ -110,49 +96,75 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text("Shopping List"),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextField(
-              controller: _loginNameController,
-              decoration: const InputDecoration(
-                hintText: "Please enter your username",
-                labelText: "Login",
-                border: OutlineInputBorder(),
-              ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Text("Add Items to Your Shopping List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _itemController,
+                        decoration: InputDecoration(
+                          hintText: "Enter item name",
+                          labelText: "Item Name",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: "Enter quantity",
+                          labelText: "Quantity",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _addItem,
+                      child: Text("Click here"),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: "Please enter your password",
-                labelText: "Password",
-                border: OutlineInputBorder(),
-              ),
+          ),
+          Expanded(
+            child: _items.isEmpty
+                ? Center(child: Text("There are no items in the list"))
+                : ListView.builder(
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onLongPress: () => _removeItem(index),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("${index + 1}: ${_items[index].todoItem}", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _handleLogin,
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.blue,
-                textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              child: const Text("Login"),
-            ),
-            Image.asset(
-              imageSource,
-              height: 200,
-              width: 200,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
-
